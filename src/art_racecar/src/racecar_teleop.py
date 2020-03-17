@@ -69,14 +69,14 @@ if __name__=="__main__":
     rospy.init_node('racecar_teleop')
     pub = rospy.Publisher('~/car/cmd_vel', Twist, queue_size=5)
 
-    speed_start_value = 70 
-    turn_start_value = 50
-    speed_mid = 1500
-    turn_mid = 90
+    speed_start_value = 0 
+    turn_start_value = 0
+    speed_mid = 0
+    turn_mid = 0
     speed_bias = 0
     turn_bias = 0
-    speed_add_once = 5
-    turn_add_once = 2
+    speed_add_once = 1
+    turn_add_once = 50
     control_speed = speed_mid
     control_turn = turn_mid
     speed_dir = 0
@@ -125,8 +125,8 @@ if __name__=="__main__":
                 run = 0
             elif key == 'w' :
                 speed_bias += speed_add_once              
-                if(speed_bias >= 450):  
-                    speed_bias = 450
+                if(speed_bias >= 80):  
+                    speed_bias = 80
                 else:
                     last_control_speed = last_control_speed+speed_add_once
                 run = 0
@@ -149,7 +149,21 @@ if __name__=="__main__":
                     turn_bias = 0
                 run = 0
             else:
-                run = 0   
+                run = 0
+	    run = 1
+	    if key == 'r':
+		last_control_speed = 0
+		last_control_turn = 0
+	    if(last_control_speed>=80):
+  		last_control_speed = 80
+	    elif(last_control_speed<=0):
+		last_control_speed = 0
+            if(last_control_turn>=1000):
+  		last_control_turn = 1000
+	    elif(last_control_turn<=-1000):
+		last_control_turn = -1000  
+            control_speed = last_control_speed
+	    control_turn = last_control_turn
             print vels(control_speed,control_turn)     
             #print "speed_dir=",speed_dir,"last_speed_dir",last_speed_dir
             if(run == 1):                      

@@ -9,9 +9,9 @@ global_costmap:
     robot_base_frame: /base_footprint
     resolution: 0.10
 
-    rolling_window: true
-    width: 10.0
-    height: 10.0
+    rolling_window: true   
+    width: 80.0
+    height: 80.0
     track_unknown_space: false
 
     plugins: 
@@ -28,6 +28,6 @@ global_costmap:
         laser_scan_sensor: {sensor_frame: laser, data_type: LaserScan, topic: scan, marking: true, clearing: true}
 
     inflation:
-        inflation_radius: 0.1
+        inflation_radius: 0.55
         cost_scaling_factor: 8.0
 

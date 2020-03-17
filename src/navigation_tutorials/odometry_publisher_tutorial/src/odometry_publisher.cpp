@@ -42,22 +42,22 @@ int main(int argc, char** argv){
   ros::init(argc, argv, "odometry_publisher");
 
   ros::NodeHandle n;
-  ros::Publisher odom_pub = n.advertise<nav_msgs::Odometry>("odom", 50);
+  ros::Publisher odom_pub = n.advertise<nav_msgs::Odometry>("odom", 10);
   tf::TransformBroadcaster odom_broadcaster;
 
-  double x = 0.0;
-  double y = 0.0;
+  double x = 0;
+  double y = 0;
   double th = 0.0;
 
-  double vx = 0.1;
-  double vy = -0.1;
-  double vth = 0.1;
+  double vx = 0;
+  double vy = 0;
+  double vth = 0;
 
   ros::Time current_time, last_time;
   current_time = ros::Time::now();
   last_time = ros::Time::now();
 
-  ros::Rate r(1.0);
+  ros::Rate r(100.0);
   while(n.ok()){
     current_time = ros::Time::now();
 
@@ -78,21 +78,20 @@ int main(int argc, char** argv){
     geometry_msgs::TransformStamped odom_trans;
     odom_trans.header.stamp = current_time;
     odom_trans.header.frame_id = "odom";
-    odom_trans.child_frame_id = "base_link";
+    odom_trans.child_frame_id = "base_footprint";
 
     odom_trans.transform.translation.x = x;
     odom_trans.transform.translation.y = y;
     odom_trans.transform.translation.z = 0.0;
     odom_trans.transform.rotation = odom_quat;
 
-    //send the transform
-    odom_broadcaster.sendTransform(odom_trans);
+
 
     //next, we'll publish the odometry message over ROS
     nav_msgs::Odometry odom;
     odom.header.stamp = current_time;
     odom.header.frame_id = "odom";
-    odom.child_frame_id = "base_link";
+    odom.child_frame_id = "base_footprint";
 
     //set the position
     odom.pose.pose.position.x = x;
@@ -104,6 +103,9 @@ int main(int argc, char** argv){
     odom.twist.twist.linear.x = vx;
     odom.twist.twist.linear.y = vy;
     odom.twist.twist.angular.z = vth;
+
+    //send the transform
+    odom_broadcaster.sendTransform(odom_trans);
 
     //publish the message
     odom_pub.publish(odom);

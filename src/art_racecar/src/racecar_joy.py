@@ -23,18 +23,19 @@ def callback(data):
     car_twist = Twist() 
     global speed_add_once,turn_add_once
     global last_turn_add_once,last_speed_add_once
-    if (data.buttons[6] == 1 or data.buttons[7] == 1):
+    if (data.buttons[5] == 1 or data.buttons[4] == 1):
         twist.linear.x = 0
         twist.angular.z = 0
         print("STOP!!")
+        print('speed: %.1f, turn: %.1f'%(twist.linear.x,twist.angular.z))
     else:
-        if(data.axes[5] != 0):
+        if(data.axes[0] != 0):
             if(last_speed_add_once == 0):
                 speed_add_once = speed_add_once + data.axes[5] * 0.1
             last_speed_add_once = 1
         else:
             last_speed_add_once = 0
-        if(data.axes[4] != 0):
+        if(data.axes[1] != 0):
             if(last_turn_add_once == 0):
                 turn_add_once = turn_add_once + data.axes[4] * 0.1
             last_turn_add_once = 1
@@ -48,18 +49,14 @@ def callback(data):
             turn_add_once = 1
         elif(turn_add_once < -1):
             turn_add_once = -1
-        twist.linear.x = data.axes[3] * speed_add_once
-        twist.angular.z = data.axes[2] * turn_add_once
-        control_speed = (data.axes[3] * (speed_max - speed_min) * speed_add_once / 2 + speed_mid)  
-        if(control_speed > 1500):
-            control_speed = control_speed + 30
-        elif(control_speed < 1500):
-	    control_speed = control_speed - 200	
-        control_turn = (data.axes[2] * (turn_max - turn_min) * turn_add_once  / 2 + turn_mid) 
+        twist.linear.x = data.axes[1] * speed_add_once
+        twist.angular.z = data.axes[0] * turn_add_once
+        control_speed = (data.axes[1] * (speed_max - speed_min) * speed_add_once / 2 + speed_mid)  
+        control_turn = (data.axes[0] * (turn_max - turn_min) * turn_add_once  / 2 + turn_mid) 
         #print('speed: %.2f, turn: %.2f'%(twist.linear.x,twist.angular.z))
         car_twist.linear.x = control_speed
         car_twist.angular.z = control_turn
-        print('speed: %.2f, turn: %.2f'%(control_speed,control_turn))
+        print('speed: %.1f, turn: %.1f'%(control_speed,control_turn))
     pub.publish(twist)
     pub_car.publish(car_twist)
 
@@ -84,13 +81,13 @@ def getKey():
 if __name__=="__main__":
 
     settings = termios.tcgetattr(sys.stdin)
-    speed_add_once = 0.25
-    turn_add_once = 0.5
-    speed_max = 1600
-    speed_min = 1400
-    speed_mid = 1500
-    turn_max = 180
-    turn_min = 0
+    speed_add_once = 1
+    turn_add_once = 1
+    speed_max = 400
+    speed_min = -400
+    speed_mid = (speed_max + speed_min)/2
+    turn_max = 1500
+    turn_min = -1500
     turn_mid = (turn_max + turn_min)/2
 
     control_speed = speed_mid
