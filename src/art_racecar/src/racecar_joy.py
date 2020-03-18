@@ -83,8 +83,8 @@ if __name__=="__main__":
     settings = termios.tcgetattr(sys.stdin)
     speed_add_once = 1
     turn_add_once = 1
-    speed_max = 400
-    speed_min = -400
+    speed_max = 150
+    speed_min = -150
     speed_mid = (speed_max + speed_min)/2
     turn_max = 1500
     turn_min = -1500
