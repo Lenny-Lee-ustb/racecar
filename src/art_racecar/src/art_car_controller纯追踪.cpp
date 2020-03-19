@@ -38,9 +38,7 @@ int start_speed = 1560;
 
 double turn_erro = 0;
 double last_turn_erro = 0;
-double kpd =1 ;
-double kff = 0;
-double G = 1;
+double k_turn = 1;
 /********************/
 /* CLASS DEFINITION */
 /********************/
@@ -101,8 +99,14 @@ double L1Controller::getEta(const geometry_msgs::Pose &carPose) {
 }
 
 double L1Controller::getSteeringAngle(double eta) {
+ geometry_msgs::Pose carPose = odom.pose.pose;
+geometry_msgs::Twist carVel = odom.twist.twist;
+geometry_msgs::Point odom_car2WayPtVec = get_odom_car2WayPtVec(carPose);
+double alpha=atan2((odom_car2WayPtVec.y - carPose.position.y),
+                        (odom_car2WayPtVec.x - carPose.position.x));
   // double steeringAnge = -atan2((L*sin(eta)),(Lfw/2+lfw*cos(eta)))*(180.0/PI);
-  double steeringAnge = eta * (180.0 / PI);
+    double steeringAnge =atan2(2*L*sin(alpha),k_turn*carVel.linear.x);
+  //double steeringAnge = eta * (180.0 / PI);
   // ROS_INFO("Steering Angle = %.2f", steeringAnge);
   return steeringAnge;
 }
@@ -481,6 +485,7 @@ void L1Controller::controlLoopCB(const ros::TimerEvent &) {
   cmd_vel.linear.x = 0;
   cmd_vel.angular.z = baseAngle;
   geometry_msgs::Point odom_car2WayPtVec = get_odom_car2WayPtVec(carPose);
+  double ld=sqrt((odom_car2WayPtVec.y - carPose.position.y)*(odom_car2WayPtVec.y - carPose.position.y)+(odom_car2WayPtVec.x - carPose.position.x)*(odom_car2WayPtVec.x - carPose.position.x));
   if (goal_received) {
     /*Estimate Steering Angle*/
     double eta = getEta(carPose);
@@ -488,14 +493,14 @@ void L1Controller::controlLoopCB(const ros::TimerEvent &) {
     ROS_INFO("eta = %.2f", eta / (2 * PI) * 3600);
     last_turn_erro = turn_erro; //存储上一次的偏差
     ROS_INFO("foundForwardPt = %s ", foundForwardPt ? "True" : "False");
-    double alpha = atan2((odom_car2WayPtVec.x - carPose.position.x),
-                        (odom_car2WayPtVec.y - carPose.position.y));
+    double alpha = atan2((odom_car2WayPtVec.y - carPose.position.y),
+                        (odom_car2WayPtVec.x - carPose.position.x));
     if (foundForwardPt) {
 
       //自己的pid控制，偏差是eta，目标是0,采用位置式pid控制
-      cmd_vel.angular.z = baseAngle + kpd*(p_turn * turn_erro +
-                          d_turn * (turn_erro - last_turn_erro))+kff*(eta/G);
-      // cmd_vel.angular.z = baseAngle + getSteeringAngle(eta)*Angle_gain;
+      //cmd_vel.angular.z = baseAngle + p_turn * turn_erro +
+                          //d_turn * (turn_erro - last_turn_erro);
+       cmd_vel.angular.z = baseAngle + getSteeringAngle(eta)*Angle_gain;
       // cmd_vel.angular.z = baseAngle + getSteeringAngle(eta)*Angle_gain;
       /*Estimate Gas Input*/
       ROS_INFO("cmd_vel.angular.z = %.2f\n", cmd_vel.angular.z);
@@ -503,12 +508,11 @@ void L1Controller::controlLoopCB(const ros::TimerEvent &) {
         if (start_loop_flag++ <= 10) {
 
           double u = getGasInput(carVel.linear.x);
-	  double v = start_speed * 5 + u;
-	  double rou = 2 * sin(alpha) / lfw;
-	  cmd_vel.linear.x = (1-abs(rou))*(1-abs(rou))*v;
-          //cmd_vel.linear.x = start_speed * 5 + u;
+          double v = start_speed * 5 + u;
+          double rou = 2 * sin(alpha) / lfw;
+          //cmd_vel.linear.x = (1 - abs(rou)) * (1 - abs(rou)) * v;
           // cmd_vel.linear.x = start_speed + PIDCal(&pid_speed,u);
-
+          cmd_vel.linear.x=start_speed * 5 + u;
           start_speed += 4;
           if (cmd_vel.linear.x > baseSpeed)
             cmd_vel.linear.x = baseSpeed;
@@ -518,12 +522,11 @@ void L1Controller::controlLoopCB(const ros::TimerEvent &) {
           // ROS_INFO("!goal_reached");
 
           double u = getGasInput(carVel.linear.x);
-	  double v = baseSpeed + u;
-	  double rou = 2 * sin(alpha) / lfw;
-          cmd_vel.linear.x = (1-abs(rou))*(1-abs(rou))*v;
-          //cmd_vel.linear.x = baseSpeed + u;
+          double v = baseSpeed + u;
+          double rou = 2 * sin(alpha) / ld;
+          //cmd_vel.linear.x = (1 - abs(rou)) * (1 - abs(rou)) * v;
           // cmd_vel.linear.x = start_speed + PIDCal(&pid_speed,u);
-
+          cmd_vel.linear.x=baseSpeed + u;
           ROS_INFO("Gas = %.2f\t Steering angle = %.2f", cmd_vel.linear.x,
                    cmd_vel.angular.z);
         }
