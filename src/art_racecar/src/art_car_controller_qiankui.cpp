@@ -25,8 +25,6 @@ along with hypha_racecar.  If not, see <http://www.gnu.org/licenses/>.
 #include <geometry_msgs/Twist.h>
 #include <iostream>
 #include <nav_msgs/Odometry.h>
-#include <sensor_msgs/Imu.h>
-#include <sensor_msgs/MagneticField.h>
 #include <tf/transform_datatypes.h>
 #include <tf/transform_listener.h>
 #include <visualization_msgs/Marker.h>
@@ -34,19 +32,15 @@ along with hypha_racecar.  If not, see <http://www.gnu.org/licenses/>.
 //#include "art_car_controller.hpp"
 
 #define PI 3.14159265358979
-#define halfT 0.005f
 int start_loop_flag = 0;
 int start_speed = 1560;
 // extern  PID  pid_speed;
 
 double turn_erro = 0;
 double last_turn_erro = 0;
-// 四元数变量,全局变量，处于不断更新的状态
-float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f;
-double Pitch_1,Roll_1,Yaw_1;
-double twoKi = 1;
-double twoKp = 1;
-
+double kpd =1 ;
+double kff = 0;
+double G = 1;
 /********************/
 /* CLASS DEFINITION */
 /********************/
@@ -64,7 +58,6 @@ public:
   double getL1Distance(const double &_Vcmd);
   double getSteeringAngle(double eta);
   double getGasInput(const float &current_v);
-  double Angle_Calculate();
   geometry_msgs::Point
   get_odom_car2WayPtVec(const geometry_msgs::Pose &carPose);
   void PID_init();
@@ -72,7 +65,7 @@ public:
 private:
   struct PID *speed_pid;
   ros::NodeHandle n_;
-  ros::Subscriber odom_sub, path_sub, goal_sub, imu_sub,mag_sub;
+  ros::Subscriber odom_sub, path_sub, goal_sub;
   ros::Publisher pub_, marker_pub;
   ros::Timer timer1, timer2;
   tf::TransformListener tf_listener;
@@ -82,8 +75,6 @@ private:
   geometry_msgs::Point odom_goal_pos;
   nav_msgs::Odometry odom;
   nav_msgs::Path map_path, odom_path;
-  sensor_msgs::Imu imu;
-  sensor_msgs::MagneticField mag;
 
   double L, Lfw, Lrv, Vcmd, lfw, lrv, steering, u, v;
   double P_speed, I_speed, D_speed;
@@ -97,155 +88,10 @@ private:
   void odomCB(const nav_msgs::Odometry::ConstPtr &odomMsg);
   void pathCB(const nav_msgs::Path::ConstPtr &pathMsg);
   void goalCB(const geometry_msgs::PoseStamped::ConstPtr &goalMsg);
-  void imuCB(const sensor_msgs::Imu::ConstPtr &ImuMsg);
-  void magCB(const sensor_msgs::MagneticField::ConstPtr &magMsg);
   void goalReachingCB(const ros::TimerEvent &);
   void controlLoopCB(const ros::TimerEvent &);
 
 }; // end of class
-
-float invSqrt(float x)
-{
-float xhalf = 0.5f * x;
-int i = *(int*)&x; // get bits for floating value
-i = 0x5f375a86 - (i>>1); // gives initial guess
-x = *(float*)&i; // convert bits back to float
-x = x * (1.5f - xhalf*x*x); // Newton step
-return x;
-}
-
-double L1Controller::Angle_Calculate() {
-
-float recipNorm;
-float q0q0, q0q1, q0q2, q0q3, q1q1, q1q2, q1q3, q2q2, q2q3, q3q3;
-float hx, hy, bx, bz;
-float halfvx, halfvy, halfvz, halfwx, halfwy, halfwz;
-float halfex, halfey, halfez;
-float qa, qb, qc;
-float gx,gy,gz,ax,ay,az,mx,my,mz;
-float integralFBx,integralFBy,integralFBz;
-float sampleFreq = 500;
-gx = imu.angular_velocity.x;
-gy = imu.angular_velocity.y;
-gz = imu.angular_velocity.z;
-ax = imu.linear_acceleration.x;
-ay = imu.linear_acceleration.y;
-az = imu.linear_acceleration.z;
-mx = mag.magnetic_field.x;
-my = mag.magnetic_field.y;
-mz = mag.magnetic_field.z;
-
-//如果地磁传感器各轴的数均是0，那么忽略该地磁数据。否则在地磁数据归一化处理的时候，会导致除以0的错误。
-// Use IMU algorithm if magnetometer measurement invalid (avoids NaN in magnetometer normalisation)
-/*if((mx == 0.0f) && (my == 0.0f) && (mz == 0.0f)) {
-MahonyAHRSupdateIMU(gx, gy, gz, ax, ay, az);
-return;
-}*/
-
-//如果加速计各轴的数均是0，那么忽略该加速度数据。否则在加速计数据归一化处理的时候，会导致除以0的错误。
-// Compute feedback only if accelerometer measurement valid (avoids NaN in accelerometer normalisation)
-if(!((ax == 0.0f) && (ay == 0.0f) && (az == 0.0f))) {
-
-//把加速度计的数据进行归一化处理。
-// Normalise accelerometer measurement
-recipNorm = invSqrt(ax * ax + ay * ay + az * az);
-ax *= recipNorm;
-ay *= recipNorm;
-az *= recipNorm;
-
-//把地磁的数据进行归一化处理。
-// Normalise magnetometer measurement
-recipNorm = invSqrt(mx * mx + my * my + mz * mz);
-mx *= recipNorm;
-my *= recipNorm;
-mz *= recipNorm;
-
-//预先进行四元数数据运算，以避免重复运算带来的效率问题。
-// Auxiliary variables to avoid repeated arithmetic
-q0q0 = q0 * q0;
-q0q1 = q0 * q1;
-q0q2 = q0 * q2;
-q0q3 = q0 * q3;
-q1q1 = q1 * q1;
-q1q2 = q1 * q2;
-q1q3 = q1 * q3;
-q2q2 = q2 * q2;
-q2q3 = q2 * q3;
-q3q3 = q3 * q3;
-
-// Reference direction of Earth’s magnetic field
-hx = 2.0f * (mx * (0.5f - q2q2 - q3q3) + my * (q1q2 - q0q3) + mz * (q1q3 + q0q2));
-hy = 2.0f * (mx * (q1q2 + q0q3) + my * (0.5f - q1q1 - q3q3) + mz * (q2q3 - q0q1));
-bx = sqrt(hx * hx + hy * hy);
-bz = 2.0f * (mx * (q1q3 - q0q2) + my * (q2q3 + q0q1) + mz * (0.5f - q1q1 - q2q2));
-
-//根据当前四元数的姿态值来估算出各重力分量Vx，Vy，Vz和各地磁分量Wx，Wy，Wz。
-// Estimated direction of gravity and magnetic field
-halfvx = q1q3 - q0q2;
-halfvy = q0q1 + q2q3;
-halfvz = q0q0 - 0.5f + q3q3;
-halfwx = bx * (0.5f - q2q2 - q3q3) + bz * (q1q3 - q0q2);
-halfwy = bx * (q1q2 - q0q3) + bz * (q0q1 + q2q3);
-halfwz = bx * (q0q2 + q1q3) + bz * (0.5f - q1q1 - q2q2);
-
-//使用叉积来计算重力和地磁误差。
-// Error is sum of cross product between estimated direction and measured direction of field vectors
-halfex = (ay * halfvz - az * halfvy) + (my * halfwz - mz * halfwy);
-halfey = (az * halfvx - ax * halfvz) + (mz * halfwx - mx * halfwz);
-halfez = (ax * halfvy - ay * halfvx) + (mx * halfwy - my * halfwx);
-
-//把上述计算得到的重力和磁力差进行积分运算，
-// Compute and apply integral feedback if enabled
-if(twoKi > 0.0f) {
-integralFBx += twoKi * halfex * (1.0f / sampleFreq); // integral error scaled by Ki
-integralFBy += twoKi * halfey * (1.0f / sampleFreq);
-integralFBz += twoKi * halfez * (1.0f / sampleFreq);
-gx += integralFBx; // apply integral feedback
-gy += integralFBy;
-gz += integralFBz;
-}
-else {
-integralFBx = 0.0f; // prevent integral windup
-integralFBy = 0.0f;
-integralFBz = 0.0f;
-}
-
-//把上述计算得到的重力差和磁力差进行比例运算。
-// Apply proportional feedback
-gx += twoKp * halfex;
-gy += twoKp * halfey;
-gz += twoKp * halfez;
-}
-
-//把由加速计和磁力计修正过后的陀螺仪数据整合到四元数中。
-// Integrate rate of change of quaternion
-gx *= (0.5f * (1.0f / sampleFreq)); // pre-multiply common factors
-gy *= (0.5f * (1.0f / sampleFreq));
-gz *= (0.5f * (1.0f / sampleFreq));
-qa = q0;
-qb = q1;
-qc = q2;
-q0 += (-qb * gx - qc * gy - q3 * gz);
-q1 += (qa * gx + qc * gz - q3 * gy);
-q2 += (qa * gy - qb * gz + q3 * gx);
-q3 += (qa * gz + qb * gy - qc * gx);
-
-//把上述运算后的四元数进行归一化处理。得到了物体经过旋转后的新的四元数。
-// Normalise quaternion
-recipNorm = invSqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
-q0 *= recipNorm;
-q1 *= recipNorm;
-q2 *= recipNorm;
-q3 *= recipNorm;
-
-  /*EulerAngle.*/ Pitch_1 = asin(-2 * q1q3 + 2 * q0q2) * 180.0 / PI; // pitch
-  /*EulerAngle.*/ Roll_1 =
-      atan2(2 * q2q3 + 2 * q0q1, -2 * q1q1 - 2 * q2q2 + 1) * 180.0 / PI; // roll
-  /*EulerAngle.*/ Yaw_1 =
-      atan2(2 * q1q2 + 2 * q0q3, -2 * q2q2 - 2 * q3q3 + 1) * 180.0 / PI; // yaw
-  return Yaw_1;
-}
-
 
 double L1Controller::getEta(const geometry_msgs::Pose &carPose) {
   geometry_msgs::Point odom_car2WayPtVec = get_odom_car2WayPtVec(carPose);
@@ -309,8 +155,7 @@ bool L1Controller::isForwardWayPt(const geometry_msgs::Point &wayPt,
                                   const geometry_msgs::Pose &carPose) {
   float car2wayPt_x = wayPt.x - carPose.position.x;
   float car2wayPt_y = wayPt.y - carPose.position.y;
-  //double car_theta = getYawFromPose(carPose) + PI;
-  double car_theta = Angle_Calculate() + PI;
+  double car_theta = getYawFromPose(carPose) + PI;
   if (car_theta > 2 * PI) {
     car_theta = car_theta - 2 * PI;
   }
@@ -342,8 +187,7 @@ bool L1Controller::isWayPtAwayFromLfwDist(const geometry_msgs::Point &wayPt,
 geometry_msgs::Point
 L1Controller::get_odom_car2WayPtVec(const geometry_msgs::Pose &carPose) {
   geometry_msgs::Point carPose_pos = carPose.position;
-  //double carPose_yaw = getYawFromPose(carPose); //获得车当前航向角
-  double carPose_yaw = Angle_Calculate(); //获得车当前航向角
+  double carPose_yaw = getYawFromPose(carPose); //获得车当前航向角
   geometry_msgs::Point forwardPt;
   geometry_msgs::Point odom_car2WayPtVec;
   foundForwardPt = false;
@@ -467,14 +311,6 @@ void L1Controller::pathCB(const nav_msgs::Path::ConstPtr &pathMsg) {
   map_path = *pathMsg;
 }
 
-void L1Controller::imuCB(const sensor_msgs::Imu::ConstPtr &ImuMsg) {
-  imu = *ImuMsg;
-}
-
-void L1Controller::magCB(const sensor_msgs::MagneticField::ConstPtr &magMsg) {
-  mag = *magMsg;
-}
-
 //=========================== 订阅信息的回调函数 end
 //======================================//
 
@@ -594,8 +430,6 @@ L1Controller::L1Controller() {
                           &L1Controller::pathCB, this);
   goal_sub =
       n_.subscribe("/move_base_simple/goal", 1, &L1Controller::goalCB, this);
-  imu_sub = n_.subscribe("/imu_data", 1, &L1Controller::imuCB, this);
-  mag_sub =n_.subscribe("mag", 1, &L1Controller::magCB, this);
   marker_pub = n_.advertise<visualization_msgs::Marker>("car_path", 10);
   pub_ = n_.advertise<geometry_msgs::Twist>("car/cmd_vel", 1);
 
@@ -657,8 +491,8 @@ void L1Controller::controlLoopCB(const ros::TimerEvent &) {
     if (foundForwardPt) {
 
       //自己的pid控制，偏差是eta，目标是0,采用位置式pid控制
-      cmd_vel.angular.z = baseAngle + p_turn * turn_erro +
-                          d_turn * (turn_erro - last_turn_erro);
+      cmd_vel.angular.z = baseAngle + kpd*(p_turn * turn_erro +
+                          d_turn * (turn_erro - last_turn_erro))+kff*(eta/G);
       // cmd_vel.angular.z = baseAngle + getSteeringAngle(eta)*Angle_gain;
       // cmd_vel.angular.z = baseAngle + getSteeringAngle(eta)*Angle_gain;
       /*Estimate Gas Input*/

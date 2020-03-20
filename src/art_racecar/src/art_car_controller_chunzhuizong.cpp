@@ -38,7 +38,7 @@ int start_speed = 1560;
 
 double turn_erro = 0;
 double last_turn_erro = 0;
-double k_turn = 1;
+double k_turn = 100;
 /********************/
 /* CLASS DEFINITION */
 /********************/
@@ -104,8 +104,8 @@ geometry_msgs::Twist carVel = odom.twist.twist;
 geometry_msgs::Point odom_car2WayPtVec = get_odom_car2WayPtVec(carPose);
 double alpha=atan2((odom_car2WayPtVec.y - carPose.position.y),
                         (odom_car2WayPtVec.x - carPose.position.x));
-  // double steeringAnge = -atan2((L*sin(eta)),(Lfw/2+lfw*cos(eta)))*(180.0/PI);
-    double steeringAnge =atan2(2*L*sin(alpha),k_turn*carVel.linear.x);
+    double steeringAnge = -atan2((L*sin(eta)),(Lfw/2+lfw*cos(eta)))*(180.0/PI);
+   // double steeringAnge =atan2(2*L*sin(alpha),k_turn*carVel.linear.x)*(180.0/PI);
   //double steeringAnge = eta * (180.0 / PI);
   // ROS_INFO("Steering Angle = %.2f", steeringAnge);
   return steeringAnge;
