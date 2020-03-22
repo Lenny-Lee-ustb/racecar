@@ -36,10 +36,13 @@
         <param name="base_global_planner" value="global_planner/GlobalPlanner"/>  
          -->
         <param name="base_global_planner" value="navfn/NavfnROS"/>  
+		<!--
         <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS"/>  
-        
-
         <rosparam file="$(find art_racecar)/param/dwa_local_planner_params.yaml" command="load"/>
+		-->
+		<param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS"/>  
+        <rosparam file="$(find art_racecar)/param/teb_local_planner_params.yaml" command="load"/>
+
         <!-- costmap layers -->    
         <rosparam file="$(find art_racecar)/param/local_costmap_params.yaml" command="load"/>
         <rosparam file="$(find art_racecar)/param/global_costmap_params.yaml" command="load"/> 
