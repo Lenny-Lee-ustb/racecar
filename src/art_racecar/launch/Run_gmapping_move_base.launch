@@ -85,6 +85,7 @@
         <param name="GasGain" value="10.0"/>
 	<param name="p_turn" value="25.0"/>
 	<param name="d_turn" value="8.0"/>
+    <param name="dist" value="0.2"/>
 	<param name="pid_speedProportion" value="0.0"/>
 	<param name="pid_speedIntegral" value="0.0"/>
 	<param name="pid_speedDerivative" value="0.0"/>

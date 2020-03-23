@@ -22,16 +22,16 @@ TebLocalPlannerROS:
  cmd_angle_instead_rotvel: False
 
  footprint_model:
-   #type: 'polygon'
-   #vertices: [ [-0.1, -0.15], [0.4, -0.15], [0.5, 0.0], [0.4, 0.15], [-0.1 ,0.15] ]
-   type: 'line'
-   line_start: [-0.1,0.0]
-   line_end: [0.4,0.0] 
+   type: 'polygon'
+   vertices: [[-0.305, -0.18], [-0.305, 0.18], [0.305, 0.18], [0.305, -0.18]]
+   #type: 'line'
+   #line_start: [-0.1,0.0]
+   #line_end: [0.4,0.0] 
 
 
- xy_goal_tolerance: 1.0
- yaw_goal_tolerance: 1.57
- free_goal_vel: False
+ xy_goal_tolerance: 0.1
+ yaw_goal_tolerance: 0.5
+ free_goal_vel: True
 
  min_obstacle_dist: 0.25
  include_costmap_obstacles: True
