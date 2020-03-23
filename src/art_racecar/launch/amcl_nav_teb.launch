@@ -17,9 +17,9 @@
     <!--rf2o_Laser_Odometry-->
     <include file="$(find art_racecar)/launch/includes/rf2o.launch.xml" />
     <!-- Robot_Localization -->
-    <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
-	<!--node pkg="robot_localization" type="ukf_localization_node" name="ukf_se" clear_params="true">
-        <rosparam command="load" file="$(find art_racecar)/param/ukf_params.yaml" /-->
+    <!--node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true"-->
+	<node pkg="robot_localization" type="ukf_localization_node" name="ukf_se" clear_params="true">
+        <rosparam command="load" file="$(find art_racecar)/param/ukf_params.yaml" />
     </node>
 
     <!-- Localization -->
