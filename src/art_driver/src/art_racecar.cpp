@@ -8,7 +8,7 @@
 #include <ros/package.h>
 #include <geometry_msgs/Twist.h>
 #define SPEED_MAX 39000
-#define SPEED_MIN 37000
+#define SPEED_MIN 37000 
 #define SPEED_MID 38000
 void TwistCallback(const geometry_msgs::Twist& twist)
 {
@@ -18,6 +18,8 @@ void TwistCallback(const geometry_msgs::Twist& twist)
     double speedinital=SPEED_MID;//速度最大值
     double anglechange=1500;//角度可变范围
     double speedchange=180;//速度可变范围
+    double speed1 = 0;
+    double speed2 = 0;
 
     //ROS_INFO("x= %f", twist.linear.x);
     //ROS_INFO("z= %f", twist.angular.z);
@@ -38,8 +40,17 @@ void TwistCallback(const geometry_msgs::Twist& twist)
 	else if (speed<SPEED_MIN)
 		speed = SPEED_MIN;
 
+	if(speed>38000 || speed==38000){
+		send_cmd(uint16_t(speed),uint16_t(angle));}
+	else if(speed<38000){
+		speed1 = speed-400;
+		send_cmd(uint16_t(speed1),uint16_t(angle));
+		speed2 = 38000;
+		send_cmd(uint16_t(speed2),uint16_t(angle));
+		speed = speed1;
+		send_cmd(uint16_t(speed),uint16_t(angle));
+	}
 
-    send_cmd(uint16_t(speed),uint16_t(angle));
 }
 
 int main(int argc, char** argv)
