@@ -265,11 +265,11 @@ L1Controller::get_odom_car2WayPtVec(const geometry_msgs::Pose &carPose) {
   sin(carPose_yaw)*(forwardPt.y - carPose_pos.y);
   odom_car2WayPtVec.y = sin(carPose_yaw)*(forwardPt.x - carPose_pos.x) -
   cos(carPose_yaw)*(forwardPt.y - carPose_pos.y);*/
-  odom_car2WayPtVec.x = -cos(carPose_yaw) *
-                        (forwardPtcontrolx)-sin(carPose_yaw) *
+  odom_car2WayPtVec.x = cos(carPose_yaw) *
+                        (forwardPtcontrolx)+sin(carPose_yaw) *
                         (forwardPtcontroly);
-  odom_car2WayPtVec.y = sin(carPose_yaw) *
-                        (forwardPtcontrolx)-cos(carPose_yaw) *
+  odom_car2WayPtVec.y = -sin(carPose_yaw) *
+                        (forwardPtcontrolx)+cos(carPose_yaw) *
                         (forwardPtcontroly);
   return odom_car2WayPtVec;
 }

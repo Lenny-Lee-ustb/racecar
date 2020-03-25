@@ -134,7 +134,7 @@ double L1Controller::getCar2GoalDist() {
 
 //从车身姿态中获得角度
 double L1Controller::getYawFromPose(const geometry_msgs::Pose &carPose) {
-  float x = carPose.orientation.x; //轴向量的x= 187.44	 Steering angle = -162.
+  float x = carPose.orientation.x; //轴向量的x
   float y = carPose.orientation.y; //轴向量的y
   float z = carPose.orientation.z; //轴向量的z
   float w = carPose.orientation.w; //极坐标系下的角度
@@ -265,11 +265,11 @@ L1Controller::get_odom_car2WayPtVec(const geometry_msgs::Pose &carPose) {
   sin(carPose_yaw)*(forwardPt.y - carPose_pos.y);
   odom_car2WayPtVec.y = sin(carPose_yaw)*(forwardPt.x - carPose_pos.x) -
   cos(carPose_yaw)*(forwardPt.y - carPose_pos.y);*/
-  odom_car2WayPtVec.x = -cos(carPose_yaw) *
-                        (forwardPtcontrolx)-sin(carPose_yaw) *
+  odom_car2WayPtVec.x = cos(carPose_yaw) *
+                        (forwardPtcontrolx)+sin(carPose_yaw) *
                         (forwardPtcontroly);
-  odom_car2WayPtVec.y = sin(carPose_yaw) *
-                        (forwardPtcontrolx)-cos(carPose_yaw) *
+  odom_car2WayPtVec.y = -sin(carPose_yaw) *
+                        (forwardPtcontrolx)+cos(carPose_yaw) *
                         (forwardPtcontroly);
   return odom_car2WayPtVec;
 }
@@ -395,7 +395,7 @@ void L1Controller::initMarker() {
   line_strip.color.b = 1.0;
   line_strip.color.a = 1.0;
 
-  // goal_circle is yellow= 187.44	 Steering angle = -162.
+  // goal_circle is yellow
   goal_circle.color.r = 1.0;
   goal_circle.color.g = 1.0;
   goal_circle.color.b = 0.0;
@@ -478,8 +478,6 @@ void L1Controller::controlLoopCB(const ros::TimerEvent &) {
   geometry_msgs::Twist carVel = odom.twist.twist;
   cmd_vel.linear.x = 0;
   cmd_vel.angular.z = baseAngle;
-  geometry_msgs::Point odom_car2WayPtVec = get_odom_car2WayPtVec(carPose);
-
   if (goal_received) {
     /*Estimate Steering Angle*/
     double eta = getEta(carPose);
@@ -487,8 +485,6 @@ void L1Controller::controlLoopCB(const ros::TimerEvent &) {
     ROS_INFO("eta = %.2f", eta / (2 * PI) * 3600);
     last_turn_erro = turn_erro; //存储上一次的偏差
     ROS_INFO("foundForwardPt = %s ", foundForwardPt ? "True" : "False");
-    double alpha = atan2((odom_car2WayPtVec.y - carPose.position.y),
-                        (odom_car2WayPtVec.x - carPose.position.x));
     if (foundForwardPt) {
 
       //自己的pid控制，偏差是eta，目标是0,采用位置式pid控制
@@ -503,8 +499,8 @@ void L1Controller::controlLoopCB(const ros::TimerEvent &) {
 
           double u = getGasInput(carVel.linear.x);
           double v = start_speed * 5 + u;
-          double rou = sin(alpha);
-          cmd_vel.linear.x = (1 - abs(rou)) *(1 - abs(rou)) *(1 - abs(rou)) * (1 - abs(rou)) * v;
+          double rou = sin(eta);
+          cmd_vel.linear.x = (1 - abs(rou)) * (1 - abs(rou)) * v;
           // cmd_vel.linear.x = start_speed + PIDCal(&pid_speed,u);
 
           start_speed += 4;
@@ -517,8 +513,8 @@ void L1Controller::controlLoopCB(const ros::TimerEvent &) {
 
           double u = getGasInput(carVel.linear.x);
           double v = baseSpeed + u;
-          double rou = sin(alpha);
-          cmd_vel.linear.x = (1 - abs(rou)) *(1 - abs(rou)) *(1 - abs(rou)) * (1 - abs(rou)) * v;
+          double rou = sin(eta);
+          cmd_vel.linear.x = (1 - abs(rou)) * (1 - abs(rou)) * v;
           // cmd_vel.linear.x = start_speed + PIDCal(&pid_speed,u);
 
           ROS_INFO("Gas = %.2f\t Steering angle = %.2f", cmd_vel.linear.x,
