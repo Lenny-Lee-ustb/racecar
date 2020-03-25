@@ -1,5 +1,5 @@
 GlobalPlanner:
-    allow_unknown: true
+    allow_unknown: false
     default_tolerance: 0.2      #路径规划器目标点的公差范围
 #   visualize_potential: false   #指定是否通过可视化PointCloud2计算的潜在区域
 #    use_dijkstra: true          #如果为ture，则使用dijkstra算法。 否则使用A *算法

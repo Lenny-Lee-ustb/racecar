@@ -60,7 +60,7 @@
         <!-- L1 -->
         <param name="Vcmd" value="1.5" /> <!-- speed of car m/s -->        
         <!-- ESC -->
-        <param name="baseSpeed" value="170"/> <!-- pwm for motor constant speed, 1500: stop --> 
+        <param name="baseSpeed" value="200"/> <!-- pwm for motor constant speed, 1500: stop --> 
  
 
         <!-- Servo -->
@@ -69,6 +69,7 @@
         <param name="GasGain" value="10"/>
 	<param name="p_turn" value="25"/>
 	<param name="d_turn" value="8"/>
+	<param name="k_rou" value="0.15"/>
         <!-- remap from="/odometry/filtered" to="odom" / --> 
         <remap from="/move_base_node/NavfnROS/plan" to="/move_base/NavfnROS/plan" /> 
     </node>

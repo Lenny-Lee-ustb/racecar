@@ -39,6 +39,7 @@ int start_speed = 1560;
 double turn_erro = 0;
 double last_turn_erro = 0;
 
+
 /********************/
 /* CLASS DEFINITION */
 /********************/
@@ -76,7 +77,7 @@ private:
 
   double L, Lfw, Lrv, Vcmd, lfw, lrv, steering, u, v;
   double P_speed, I_speed, D_speed;
-  double p_turn, d_turn;
+  double p_turn, d_turn, dist;
 
   double Gas_gain, baseAngle, Angle_gain, goalRadius;
   int controller_freq, baseSpeed;
@@ -113,6 +114,7 @@ double L1Controller::getGasInput(const float &current_v) {
 
 double L1Controller::getL1Distance(const double &_Vcmd) {
   double L1 = 0;
+  
   if (_Vcmd < 1.34)
     L1 = 3 * 1.5 / 3.0; // 3 / 3.0;
   else if (_Vcmd > 1.34 && _Vcmd < 5.36)
@@ -421,6 +423,7 @@ L1Controller::L1Controller() {
   pn.param("baseAngle", baseAngle, 90.0);
   pn.param("p_turn", p_turn, 20.0);
   pn.param("d_turn", d_turn, 5.0);
+  pn.param("dist", dist, 0.5);
 
   // Publishers and Subscribers
   odom_sub = n_.subscribe("/odometry/filtered", 1, &L1Controller::odomCB, this);
@@ -463,10 +466,12 @@ void L1Controller::goalReachingCB(const ros::TimerEvent &) {
 
   if (goal_received) {
     double car2goal_dist = getCar2GoalDist();
-    if (car2goal_dist < goalRadius) {
+    if (car2goal_dist < dist) {
       goal_reached = true;
       goal_received = false;
-      // ROS_INFO("Goal Reached !");
+      ROS_INFO("---------------Goal Reached !------------------");
+	  ROS_INFO("---------------Goal Reached !------------------");
+	  ROS_INFO("---------------Goal Reached !------------------");
       car_stop = 100;
     }
   }

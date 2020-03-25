@@ -39,7 +39,6 @@ int start_speed = 1560;
 double turn_erro = 0;
 double last_turn_erro = 0;
 
-
 /********************/
 /* CLASS DEFINITION */
 /********************/
@@ -77,7 +76,7 @@ private:
 
   double L, Lfw, Lrv, Vcmd, lfw, lrv, steering, u, v;
   double P_speed, I_speed, D_speed;
-  double p_turn, d_turn, dist;
+  double p_turn, d_turn,k_rou;
 
   double Gas_gain, baseAngle, Angle_gain, goalRadius;
   int controller_freq, baseSpeed;
@@ -101,7 +100,7 @@ double L1Controller::getEta(const geometry_msgs::Pose &carPose) {
 
 double L1Controller::getSteeringAngle(double eta) {
   // double steeringAnge = -atan2((L*sin(eta)),(Lfw/2+lfw*cos(eta)))*(180.0/PI);
-  double steeringAnge = -eta * (180.0 / PI);
+  double steeringAnge = eta * (180.0 / PI);
   // ROS_INFO("Steering Angle = %.2f", steeringAnge);
   return steeringAnge;
 }
@@ -114,7 +113,6 @@ double L1Controller::getGasInput(const float &current_v) {
 
 double L1Controller::getL1Distance(const double &_Vcmd) {
   double L1 = 0;
-  
   if (_Vcmd < 1.34)
     L1 = 3 * 1.5 / 3.0; // 3 / 3.0;
   else if (_Vcmd > 1.34 && _Vcmd < 5.36)
@@ -423,7 +421,7 @@ L1Controller::L1Controller() {
   pn.param("baseAngle", baseAngle, 90.0);
   pn.param("p_turn", p_turn, 20.0);
   pn.param("d_turn", d_turn, 5.0);
-  pn.param("dist", dist, 0.5);
+  pn.param("k_rou", k_rou, 0.2);
 
   // Publishers and Subscribers
   odom_sub = n_.subscribe("/odometry/filtered", 1, &L1Controller::odomCB, this);
@@ -466,12 +464,10 @@ void L1Controller::goalReachingCB(const ros::TimerEvent &) {
 
   if (goal_received) {
     double car2goal_dist = getCar2GoalDist();
-    if (car2goal_dist < dist) {
+    if (car2goal_dist < goalRadius) {
       goal_reached = true;
       goal_received = false;
-      ROS_INFO("---------------Goal Reached !------------------");
-	  ROS_INFO("---------------Goal Reached !------------------");
-	  ROS_INFO("---------------Goal Reached !------------------");
+      // ROS_INFO("Goal Reached !");
       car_stop = 100;
     }
   }
@@ -483,12 +479,11 @@ void L1Controller::controlLoopCB(const ros::TimerEvent &) {
   geometry_msgs::Twist carVel = odom.twist.twist;
   cmd_vel.linear.x = 0;
   cmd_vel.angular.z = baseAngle;
-
   if (goal_received) {
     /*Estimate Steering Angle*/
     double eta = getEta(carPose);
     turn_erro = eta / (2 * PI) * 360; //把eta角当作当前的偏差
-    ROS_INFO("eta = %.2f", eta / (2 * PI) * 3600);
+    //ROS_INFO("eta = %.2f", eta / (2 * PI) * 3600);
     last_turn_erro = turn_erro; //存储上一次的偏差
     ROS_INFO("foundForwardPt = %s ", foundForwardPt ? "True" : "False");
     if (foundForwardPt) {
@@ -499,13 +494,14 @@ void L1Controller::controlLoopCB(const ros::TimerEvent &) {
       // cmd_vel.angular.z = baseAngle + getSteeringAngle(eta)*Angle_gain;
       // cmd_vel.angular.z = baseAngle + getSteeringAngle(eta)*Angle_gain;
       /*Estimate Gas Input*/
-      ROS_INFO("cmd_vel.angular.z = %.2f\n", cmd_vel.angular.z);
+      ROS_INFO("cmd_vel.angular.z = %.2f", cmd_vel.angular.z);
       if (!goal_reached) {
         if (start_loop_flag++ <= 10) {
 
           double u = getGasInput(carVel.linear.x);
-
-          cmd_vel.linear.x = start_speed * 5 + u;
+          double v = start_speed * 5 + u;
+          double rou = k_rou*sin(eta);
+          cmd_vel.linear.x = (1 - fabs(rou)) * v;
           // cmd_vel.linear.x = start_speed + PIDCal(&pid_speed,u);
 
           start_speed += 4;
@@ -517,11 +513,13 @@ void L1Controller::controlLoopCB(const ros::TimerEvent &) {
           // ROS_INFO("!goal_reached");
 
           double u = getGasInput(carVel.linear.x);
-          cmd_vel.linear.x = baseSpeed + u;
+          double v = baseSpeed + u;
+          double rou = k_rou*sin(eta);
+          cmd_vel.linear.x = (1 - fabs(rou)) * v;
           // cmd_vel.linear.x = start_speed + PIDCal(&pid_speed,u);
-
-          ROS_INFO("Gas = %.2f\t Steering angle = %.2f", cmd_vel.linear.x,
-                   cmd_vel.angular.z);
+		  ROS_INFO("eta = %.2f\n", eta);
+          ROS_INFO("Rou = %.2f\n", rou);
+          ROS_INFO("cmd_vel_1 = %.2f\n", cmd_vel.linear.x);
         }
       }
     }
