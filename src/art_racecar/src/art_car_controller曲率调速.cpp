@@ -482,7 +482,7 @@ void L1Controller::controlLoopCB(const ros::TimerEvent &) {
     /*Estimate Steering Angle*/
     double eta = getEta(carPose);
     turn_erro = eta / (2 * PI) * 360; //把eta角当作当前的偏差
-    ROS_INFO("eta = %.2f", eta / (2 * PI) * 3600);
+    //ROS_INFO("eta = %.2f", eta / (2 * PI) * 3600);
     last_turn_erro = turn_erro; //存储上一次的偏差
     ROS_INFO("foundForwardPt = %s ", foundForwardPt ? "True" : "False");
     if (foundForwardPt) {
@@ -517,8 +517,8 @@ void L1Controller::controlLoopCB(const ros::TimerEvent &) {
           cmd_vel.linear.x = (1 - abs(rou)) * (1 - abs(rou)) * v;
           // cmd_vel.linear.x = start_speed + PIDCal(&pid_speed,u);
 
-          ROS_INFO("Gas = %.2f\t Steering angle = %.2f", cmd_vel.linear.x,
-                   cmd_vel.angular.z);
+          //ROS_INFO("Gas = %.2f\n", cmd_vel.linear.x);
+          ROS_INFO("cmd_vel.linear.x = %.2f\n", cmd_vel.linear.x);
         }
       }
     }
