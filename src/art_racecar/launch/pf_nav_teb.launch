@@ -1,0 +1,119 @@
+<?xml version="1.0"?>
+
+<launch>
+    <arg name="use_rviz" default="false" />
+
+	<!--for particle filter-->
+	<arg name="scan_topic" default="/scan"/>
+	<arg name="odometry_topic" default="/odometry/filtered"/>
+	<!-- <arg name="odometry_topic" default="/odom"/> -->
+	<arg name="angle_step" default="18"/>
+	<arg name="max_particles" default="4000"/>
+	<arg name="squash_factor" default="2.2"/>
+	<arg name="viz" default="1"/>  
+
+    <!-- Map server -->
+    <node name="map_server" pkg="map_server" type="map_server" args="$(find art_racecar)/map/test.yaml"/>
+
+    <!-- Particle Filter --> 	
+	<node pkg="particle_filter" type="particle_filter.py" name="Particle_filter" output="screen">
+		<param name="scan_topic" value="$(arg scan_topic)"/>
+		<param name="odometry_topic" value="$(arg odometry_topic)"/>
+		<!-- range data is downsampled by this factor -->
+		<param name="angle_step" value="$(arg angle_step)"/>
+		<param name="max_particles" value="$(arg max_particles)"/>
+		<param name="max_viz_particles" value="60"/>
+
+		<!-- <param name="range_method" value="pcddt"/> -->
+		<param name="range_method" value="pcddt"/>
+
+		<param name="squash_factor" value="$(arg squash_factor)"/>
+		<param name="theta_discretization" value="112"/>
+		<!-- max sensor range in meters -->
+		<param name="max_range" value="８"/> 
+		<param name="viz" value="$(arg viz)"/> 
+		<param name="fine_timing" value="0"/> 
+		<param name="publish_odom" value="1"/> 
+
+		<param name="z_short" value="0.01"/> 
+		<param name="z_max" value="0.07"/> 
+		<param name="z_rand" value="0.12"/> 
+		<param name="z_hit" value="0.75"/> 
+		<param name="sigma_hit" value="8.0"/> 
+
+		<param name="motion_dispersion_x" value="0.05"/> 
+		<param name="motion_dispersion_y" value="0.025"/> 
+		<param name="motion_dispersion_theta" value="0.25"/> 
+		<param name="rangelib_variant" value="2"/>
+	</node>
+
+	
+
+
+    <!-- ODOMETRY -->
+    <!--rf2o_Laser_Odometry-->
+    <include file="$(find art_racecar)/launch/includes/rf2o.launch.xml" />
+    <!-- Robot_Localization -->
+    <!--node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true"-->
+	<node pkg="robot_localization" type="ukf_localization_node" name="ukf_se" clear_params="true">
+        <rosparam command="load" file="$(find art_racecar)/param/ukf_params.yaml" />
+    </node>
+
+
+    <!-- Localization -->
+    <!-- AMCL -->
+<!--
+    <include file="$(find art_racecar)/launch/includes/amcl.launch.xml">
+        <arg name="init_x" value="$(arg init_x)"/>
+        <arg name="init_y" value="$(arg init_y)"/>
+        <arg name="init_a" value="$(arg init_a)"/>
+    </include>
+-->
+
+    <!-- Navstack -->
+    <node pkg="move_base" type="move_base" respawn="false" name="move_base">
+        <!-- local planner -->
+         <!--
+        <param name="base_global_planner" value="global_planner/GlobalPlanner"/>  
+         -->
+        <param name="base_global_planner" value="navfn/NavfnROS"/>  
+		<!--
+        <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS"/>  
+        <rosparam file="$(find art_racecar)/param/dwa_local_planner_params.yaml" command="load"/>
+		-->
+		<param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS"/>  
+        <rosparam file="$(find art_racecar)/param/teb_local_planner_params.yaml" command="load"/>
+
+        <!-- costmap layers -->    
+        <rosparam file="$(find art_racecar)/param/local_costmap_params.yaml" command="load"/>
+        <rosparam file="$(find art_racecar)/param/global_costmap_params.yaml" command="load"/> 
+        <!-- move_base params -->
+        <rosparam file="$(find art_racecar)/param/base_global_planner_params.yaml" command="load"/>
+        <rosparam file="$(find art_racecar)/param/move_base_params.yaml" command="load"/>
+        <remap from="/odom" to="/odometry/filtered"/>
+
+       
+    </node>
+
+    <!-- L1 controller -->  
+    <node pkg="art_racecar" type="art_car_controller" respawn="false" name="art_car_controller" output="screen">       
+        <!-- L1 -->
+        <param name="Vcmd" value="1.5" /> <!-- speed of car m/s -->        
+        <!-- ESC -->
+        <param name="baseSpeed" value="200"/> <!-- pwm for motor constant speed, 1500: stop --> 
+ 
+
+        <!-- Servo -->
+        <param name="baseAngle" value="0.0"/> <!-- the middle pos of servo, for tt02: 87, for hsp: ? -->
+        <param name="AngleGain" value="-80.0"/> <!-- for tt02: >0, for hsp: <0 -->	
+        <param name="GasGain" value="10"/>
+	<param name="p_turn" value="25"/>
+	<param name="d_turn" value="8"/>
+	<param name="k_rou" value="0.15"/>
+        <!-- remap from="/odometry/filtered" to="odom" / --> 
+        <remap from="/move_base_node/NavfnROS/plan" to="/move_base/NavfnROS/plan" /> 
+    </node>
+
+    <!-- Rviz -->
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find art_racecar)/rviz/amcl.rviz" if="$(arg use_rviz)" />
+</launch>
