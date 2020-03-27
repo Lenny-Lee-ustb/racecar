@@ -60,7 +60,7 @@
         <!-- L1 -->
         <param name="Vcmd" value="1.5" /> <!-- speed of car m/s -->        
         <!-- ESC -->
-        <param name="baseSpeed" value="200"/> <!-- pwm for motor constant speed, 1500: stop --> 
+        <param name="baseSpeed" value="180"/> <!-- pwm for motor constant speed, 1500: stop --> 
  
 
         <!-- Servo -->
