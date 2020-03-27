@@ -76,7 +76,7 @@ private:
 
   double L, Lfw, Lrv, Vcmd, lfw, lrv, steering, u, v;
   double P_speed, I_speed, D_speed;
-  double p_turn, d_turn,k_rou;
+  double p_turn, d_turn, k_rou;
 
   double Gas_gain, baseAngle, Angle_gain, goalRadius;
   int controller_freq, baseSpeed;
@@ -265,12 +265,10 @@ L1Controller::get_odom_car2WayPtVec(const geometry_msgs::Pose &carPose) {
   sin(carPose_yaw)*(forwardPt.y - carPose_pos.y);
   odom_car2WayPtVec.y = sin(carPose_yaw)*(forwardPt.x - carPose_pos.x) -
   cos(carPose_yaw)*(forwardPt.y - carPose_pos.y);*/
-  odom_car2WayPtVec.x = cos(carPose_yaw) *
-                        (forwardPtcontrolx)+sin(carPose_yaw) *
-                        (forwardPtcontroly);
-  odom_car2WayPtVec.y = -sin(carPose_yaw) *
-                        (forwardPtcontrolx)+cos(carPose_yaw) *
-                        (forwardPtcontroly);
+  odom_car2WayPtVec.x = cos(carPose_yaw) * (forwardPtcontrolx) +
+                        sin(carPose_yaw) * (forwardPtcontroly);
+  odom_car2WayPtVec.y = -sin(carPose_yaw) * (forwardPtcontrolx) +
+                        cos(carPose_yaw) * (forwardPtcontroly);
   return odom_car2WayPtVec;
 }
 
@@ -482,44 +480,97 @@ void L1Controller::controlLoopCB(const ros::TimerEvent &) {
   if (goal_received) {
     /*Estimate Steering Angle*/
     double eta = getEta(carPose);
-    turn_erro = eta / (2 * PI) * 360; //把eta角当作当前的偏差
-    //ROS_INFO("eta = %.2f", eta / (2 * PI) * 3600);
-    last_turn_erro = turn_erro; //存储上一次的偏差
-    ROS_INFO("foundForwardPt = %s ", foundForwardPt ? "True" : "False");
-    if (foundForwardPt) {
+    //前进模式
+    if ((eta > -PI / 2 && eta < PI / 2) || eta == -PI / 2 || eta == PI / 2) {
+      turn_erro = eta / (2 * PI) * 360; //把eta角当作当前的偏差
+      // ROS_INFO("eta = %.2f", eta / (2 * PI) * 3600);
+      last_turn_erro = turn_erro; //存储上一次的偏差
+      ROS_INFO("foundForwardPt = %s ", foundForwardPt ? "True" : "False");
+      if (foundForwardPt) {
 
-      //自己的pid控制，偏差是eta，目标是0,采用位置式pid控制
-      cmd_vel.angular.z = baseAngle + p_turn * turn_erro +
-                          d_turn * (turn_erro - last_turn_erro);
-      // cmd_vel.angular.z = baseAngle + getSteeringAngle(eta)*Angle_gain;
-      // cmd_vel.angular.z = baseAngle + getSteeringAngle(eta)*Angle_gain;
-      /*Estimate Gas Input*/
-      ROS_INFO("cmd_vel.angular.z = %.2f", cmd_vel.angular.z);
-      if (!goal_reached) {
-        if (start_loop_flag++ <= 10) {
+        //自己的pid控制，偏差是eta，目标是0,采用位置式pid控制
+        cmd_vel.angular.z = baseAngle + p_turn * turn_erro +
+                            d_turn * (turn_erro - last_turn_erro);
+        // cmd_vel.angular.z = baseAngle + getSteeringAngle(eta)*Angle_gain;
+        // cmd_vel.angular.z = baseAngle + getSteeringAngle(eta)*Angle_gain;
+        /*Estimate Gas Input*/
+        ROS_INFO("cmd_vel.angular.z = %.2f", cmd_vel.angular.z);
+        if (!goal_reached) {
+          if (start_loop_flag++ <= 10) {
 
-          double u = getGasInput(carVel.linear.x);
-          double v = start_speed * 5 + u;
-          double rou = k_rou*sin(eta);
-          cmd_vel.linear.x = (1 - fabs(rou)) * v;
-          // cmd_vel.linear.x = start_speed + PIDCal(&pid_speed,u);
+            double u = getGasInput(carVel.linear.x);
+            double v = start_speed * 5 + u;
+            double rou = k_rou * sin(eta);
+            cmd_vel.linear.x = (1 - fabs(rou)) * v;
+            // cmd_vel.linear.x = start_speed + PIDCal(&pid_speed,u);
 
-          start_speed += 4;
-          if (cmd_vel.linear.x > baseSpeed)
-            cmd_vel.linear.x = baseSpeed;
-          ROS_INFO("baseSpeed = %.2f\t Steering angle = %.2f", cmd_vel.linear.x,
-                   cmd_vel.angular.z);
-        } else {
-          // ROS_INFO("!goal_reached");
+            start_speed += 4;
+            if (cmd_vel.linear.x > baseSpeed)
+              cmd_vel.linear.x = baseSpeed;
+            ROS_INFO("baseSpeed = %.2f\t Steering angle = %.2f",
+                     cmd_vel.linear.x, cmd_vel.angular.z);
+          } else {
+            // ROS_INFO("!goal_reached");
 
-          double u = getGasInput(carVel.linear.x);
-          double v = baseSpeed + u;
-          double rou = k_rou*sin(eta);
-          cmd_vel.linear.x = (1 - fabs(rou)) * v;
-          // cmd_vel.linear.x = start_speed + PIDCal(&pid_speed,u);
-		  ROS_INFO("eta = %.2f\n", eta);
-          ROS_INFO("Rou = %.2f\n", rou);
-          ROS_INFO("cmd_vel_1 = %.2f\n", cmd_vel.linear.x);
+            double u = getGasInput(carVel.linear.x);
+            double v = baseSpeed + u;
+            double rou = k_rou * sin(eta);
+            cmd_vel.linear.x = (1 - fabs(rou)) * v;
+            // cmd_vel.linear.x = start_speed + PIDCal(&pid_speed,u);
+            ROS_INFO("eta = %.2f\n", eta);
+            ROS_INFO("Rou = %.2f\n", rou);
+            ROS_INFO("cmd_vel_1 = %.2f\n", cmd_vel.linear.x);
+          }
+        }
+      }
+    }
+    //倒车模式
+    else if ((eta > PI / 2 && eta < PI) || (eta > -PI && eta < -PI / 2)) {
+      if (eta > PI / 2 && eta < PI) {
+        eta = eta - PI / 2;
+      }
+      if (eta > -PI && eta < -PI / 2) {
+        eta = eta + PI / 2;
+      }
+      turn_erro = eta / (2 * PI) * 360; //把eta角当作当前的偏差
+      // ROS_INFO("eta = %.2f", eta / (2 * PI) * 3600);
+      last_turn_erro = turn_erro; //存储上一次的偏差
+      ROS_INFO("foundForwardPt = %s ", foundForwardPt ? "True" : "False");
+      if (foundForwardPt) {
+
+        //自己的pid控制，偏差是eta，目标是0,采用位置式pid控制
+        cmd_vel.angular.z = baseAngle + p_turn * turn_erro +
+                            d_turn * (turn_erro - last_turn_erro);
+        // cmd_vel.angular.z = baseAngle + getSteeringAngle(eta)*Angle_gain;
+        // cmd_vel.angular.z = baseAngle + getSteeringAngle(eta)*Angle_gain;
+        /*Estimate Gas Input*/
+        ROS_INFO("cmd_vel.angular.z = %.2f", cmd_vel.angular.z);
+        if (!goal_reached) {
+          if (start_loop_flag++ <= 10) {
+
+            double u = getGasInput(carVel.linear.x);
+            double v = start_speed * 5 + u;
+            double rou = k_rou * sin(eta);
+            cmd_vel.linear.x = -((1 - fabs(rou)) * v);
+            // cmd_vel.linear.x = start_speed + PIDCal(&pid_speed,u);
+
+            start_speed += 4;
+            if (cmd_vel.linear.x > baseSpeed)
+              cmd_vel.linear.x = -baseSpeed;
+            ROS_INFO("baseSpeed = %.2f\t Steering angle = %.2f",
+                     cmd_vel.linear.x, cmd_vel.angular.z);
+          } else {
+            // ROS_INFO("!goal_reached");
+
+            double u = getGasInput(carVel.linear.x);
+            double v = baseSpeed + u;
+            double rou = k_rou * sin(eta);
+            cmd_vel.linear.x = -((1 - fabs(rou)) * v);
+            // cmd_vel.linear.x = start_speed + PIDCal(&pid_speed,u);
+            ROS_INFO("eta = %.2f\n", eta);
+            ROS_INFO("Rou = %.2f\n", rou);
+            ROS_INFO("cmd_vel_1 = %.2f\n", cmd_vel.linear.x);
+          }
         }
       }
     }
